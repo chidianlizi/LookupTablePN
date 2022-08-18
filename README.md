@@ -13,7 +13,7 @@ The following libraries have no specific version requirements unless otherwise s
 ## Usage
 Before starting, please place the files in the following directory format:
 ```
-LookupTablePN++
+LookupTablePN
 ├── data
 │   ├── train
 │   │   ├── models
