@@ -48,30 +48,6 @@ def sample_and_label(path, label_list):
     pc.points = o3d.utility.Vector3dVector(allpoints[1:,0:3])
     o3d.io.write_point_cloud(os.path.join(PATH_XYZ, namestr+'.xyz'),pc)
 
-############################################################################
-def sample_test_pc(path):
-    '''Convert mesh to pointcloud without labels
-    
-    '''
-    namestr = os.path.split(path)[-1]
-    files = os.listdir(path)
-    for file in files:
-        if file == namestr+'.obj':
-            mesh = o3d.io.read_triangle_mesh(os.path.join(path, file))
-            # print (np.asarray(mesh.triangles).shape)
-
-                # mesh.compute_vertex_normals()
-                # coor = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin = mesh.get_center())
-                # o3d.visualization.draw_geometries([mesh, coor])
-                    
-            number_points = int(mesh.get_surface_area()/40) # get number of points according to surface area
-            pc = mesh.sample_points_poisson_disk(number_points, init_factor=5) # poisson disk sampling
-            xyz = np.asarray(pc.points)
-            pc = o3d.geometry.PointCloud()
-            pc.points = o3d.utility.Vector3dVector(xyz)
-            o3d.io.write_point_cloud(os.path.join(PATH_XYZ, namestr+'.xyz'),pc)
-############################################################################
-
 
 if __name__ == '__main__':
     f = open('../data/train/parts_classification/class_dict.pkl', 'rb')

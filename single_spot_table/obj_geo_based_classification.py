@@ -444,7 +444,7 @@ if __name__ == '__main__':
         if not os.path.exists(class_dir):
             os.makedirs(class_dir)
         os.system('cp %s %s'%(key, class_dir))
-    os.system('rm -rf ../data/train/label_temp_folder')
+    
     for i in range(len(values)):
         show_obj('../data/train/parts_classification/'+'class_'+str(i))
     print ('FINISHED!')

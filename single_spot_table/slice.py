@@ -34,13 +34,14 @@ class WeldScene:
     def __init__(self, pc_path):
         self.pc = o3d.geometry.PointCloud()
         xyzl = load_pcd_data(pc_path)
+        print (xyzl.shape)
         self.xyz = xyzl[:,0:3]
         self.l = xyzl[:,3]
         self.pc.points = o3d.utility.Vector3dVector(self.xyz)
 
     def crop(self, weld_info, bbox=1, num_points=2048, vis=False):
         """
-        bbox: number of cut bounding box, 1 = use one normal info, 2 = use two normals
+        bbox: number of cut bounding box, 1 = use one normal info, 2 = use two normals, for the rotated slice bbox must be 1
         the default point cloud contains a minimum of 2048 points, if not enough then copy and fill
         """
         pc = copy.copy(self.pc)
@@ -151,7 +152,6 @@ class WeldScene:
             l_crop_2 = self.l[idx_crop_2]
 
             cropped_pc = pc1 + pc2
-            cropped_pc.translate(-weld_spot, relative=True)
 
             xyz_crop = np.vstack((xyz_crop_1_new, xyz_crop_2_new))
             l_crop = np.hstack((l_crop_1, l_crop_2))
@@ -174,7 +174,7 @@ def slice_one(pc_path, xml_path, name):
     minpoints = 1000000
     for i in range(frames.shape[0]):
         weld_info = frames[i,3:].astype(float)
-        cxyzl, cpc, new_weld_info = ws.crop(weld_info=weld_info, bbox=2)
+        cxyzl, cpc, new_weld_info = ws.crop(weld_info=weld_info, bbox=1)
         # draw(cxyzl[:,0:3], cxyzl[:,3])
         points2pcd('../data/train/welding_zone/'+name+'_'+str(i)+'.pcd', cxyzl)
         d[name+'_'+str(i)] = new_weld_info
