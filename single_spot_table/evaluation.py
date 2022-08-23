@@ -12,30 +12,10 @@ import scipy.linalg as linalg
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT,'utils'))
-from xml_parser_ds2 import parse_frame_dump, list2array
+from xml_parser import parse_frame_dump, list2array
 from foundation import points2pcd, load_pcd_data
 from math_util import rotate_mat
-def merge_xml():
-    '''Merge all xml files of same component into one
-    '''
-    path = '../data/test/results'
-    folders = os.listdir(path)
-    for folder in folders:
-        files = os.listdir(os.path.join(path, folder))
-        xml_list = []
-        for file in files:
-            if os.path.splitext(file)[1] == '.xml':
-                xml_list.append(os.path.join(path, folder, file))
-        print (len(xml_list))
-        with open(os.path.join(path, folder, folder +'.xml'), 'w+') as f:
-            f.write('<?xml version="1.0" encoding="utf-8" standalone="no" ?>\n')
-            f.write('<frame-dump version="1.0" baugruppe="'+folder+'">\n')
-            for xml in xml_list:
-                g = open(xml, 'r')
-                context = g.readlines()
-                for line in context[2:-1]:
-                    f.write(line)
-            f.write('</frame-dump>')
+
 
 
 def pose_error(pose1, pose2):
@@ -319,7 +299,6 @@ def show_error():
 
 
 if __name__=='__main__':
-    merge_xml()
     show_error()
 
 

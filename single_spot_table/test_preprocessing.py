@@ -11,7 +11,7 @@ import time
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT,'utils'))
-from xml_parser_ds2 import parse_frame_dump, parse_xml_to_array, list2array
+from xml_parser import parse_frame_dump, list2array
 from foundation import points2pcd, load_pcd_data, fps
 from math_util import rotate_mat, rotation_matrix_from_vectors
 

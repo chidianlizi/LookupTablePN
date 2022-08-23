@@ -21,6 +21,7 @@ def parse_frame_dump(xml_file):
                 Y = float(Punkt.get('Y'))
                 Z = float(Punkt.get('Z'))
                 Norm = []
+                Rot_X, Rot_Y, Rot_Z, EA3 = 0, 0, 0, 0
                 for Fl_Norm in Punkt.findall('Fl_Norm'):
                     Norm_X = float(Fl_Norm.get('X'))
                     Norm_Y = float(Fl_Norm.get('Y'))
@@ -63,74 +64,9 @@ def parse_frame_dump(xml_file):
                 pose_frames.append(torch_frame)
         
         total_info.append({'torch': torch, 'weld_frames': weld_frames, 'pose_frames': pose_frames})
-        
+
     return total_info
 
-
-def parse_xml_to_array(xml_file):
-    '''parse xml file to get welding spots and torch poses'''
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-    
-    total_info = [] # list of all infos about the torch, welding spots and the transformation matrix
-
-    for SNaht in root.findall('SNaht'):
-        weld_info = []
-        weld_info.append(SNaht.get('Name'))
-        weld_info.append(SNaht.get('ZRotLock'))
-        weld_info.append(SNaht.get('WkzWkl'))
-        torch = SNaht.get('WkzName')
-        if torch == 'MRW510_10GH' or torch == 'MRW510_CDD_10GH':
-            weld_info.append(0)
-        elif torch  == 'TAND_GERAD_DD':
-            weld_info.append(1)
-        else:
-            weld_info.append(2)
-        
-        for Kontur in SNaht.findall('Kontur'):  
-            for Punkt in Kontur.findall('Punkt'):
-                X = float(Punkt.get('X'))
-                Y = float(Punkt.get('Y'))
-                Z = float(Punkt.get('Z'))
-                weld_info.append(X)
-                weld_info.append(Y)
-                weld_info.append(Z)
-
-                for Fl_Norm in Punkt.findall('Fl_Norm'):
-                    Norm_X = float(Fl_Norm.get('X'))
-                    Norm_Y = float(Fl_Norm.get('Y'))
-                    Norm_Z = float(Fl_Norm.get('Z'))
-                    weld_info.append(Norm_X)
-                    weld_info.append(Norm_Y)
-                    weld_info.append(Norm_Z)
-                
-                for Rot in Punkt.findall('Rot'):
-                    Rot_X = float(Rot.get('X'))
-                    Rot_Y = float(Rot.get('Y'))
-                    Rot_Z = float(Rot.get('Z'))
-                    weld_info.append(Rot_X)
-                    weld_info.append(Rot_Y)
-                    weld_info.append(Rot_Z)
-
-        for Frames in SNaht.findall('Frames'):  
-            for Frame in Frames.findall('Frame'):
-                for XVek in Frame.findall('XVek'):
-                    # 3x3 rotation
-                    weld_info.append(XVek.get('X'))
-                    weld_info.append(XVek.get('Y'))
-                    weld_info.append(XVek.get('Z'))
-                for YVek in Frame.findall('YVek'):
-                    # 3x3 rotation
-                    weld_info.append(YVek.get('X'))
-                    weld_info.append(YVek.get('Y'))
-                    weld_info.append(YVek.get('Z'))  
-                for ZVek in Frame.findall('ZVek'):
-                    # 3x3 rotation
-                    weld_info.append(ZVek.get('X'))
-                    weld_info.append(ZVek.get('Y'))
-                    weld_info.append(ZVek.get('Z'))  
-        total_info.append(np.asarray(weld_info))
-    return np.asarray(total_info)
 
 def list2array(total_info):
     res = []
@@ -156,27 +92,24 @@ def list2array(total_info):
             weld_info.append(spot['norm'][1][0])
             weld_info.append(spot['norm'][1][1])
             weld_info.append(spot['norm'][1][2])
-            if 'rot' in spot.keys():
-                weld_info.append(spot['rot'][0])
-                weld_info.append(spot['rot'][1])
-                weld_info.append(spot['rot'][2])
-            else:
-                weld_info.append('0')
-                weld_info.append('0')
-                weld_info.append('0')
-            if 'EA3' in spot.keys():
-                weld_info.append(spot['EA3'])
-            else:
-                weld_info.append('0')
-            weld_info.append(info['pose_frames'][i][0][0])
-            weld_info.append(info['pose_frames'][i][1][0])
-            weld_info.append(info['pose_frames'][i][2][0])
-            weld_info.append(info['pose_frames'][i][0][1])
-            weld_info.append(info['pose_frames'][i][1][1])
-            weld_info.append(info['pose_frames'][i][2][1])
-            weld_info.append(info['pose_frames'][i][0][2])
-            weld_info.append(info['pose_frames'][i][1][2])
-            weld_info.append(info['pose_frames'][i][2][2])
+
+            weld_info.append(spot['rot'][0])
+            weld_info.append(spot['rot'][1])
+            weld_info.append(spot['rot'][2])
+
+
+            weld_info.append(spot['EA'])
+
+            if len(info['pose_frames']) > 0:
+                weld_info.append(info['pose_frames'][i][0][0])
+                weld_info.append(info['pose_frames'][i][1][0])
+                weld_info.append(info['pose_frames'][i][2][0])
+                weld_info.append(info['pose_frames'][i][0][1])
+                weld_info.append(info['pose_frames'][i][1][1])
+                weld_info.append(info['pose_frames'][i][2][1])
+                weld_info.append(info['pose_frames'][i][0][2])
+                weld_info.append(info['pose_frames'][i][1][2])
+                weld_info.append(info['pose_frames'][i][2][2])
 
             res.append(np.asarray(weld_info))
     return np.asarray(res)

@@ -230,9 +230,9 @@ def label():
         feature = extract_feature_from_mesh(file.strip())
         features.append(feature)
     features = np.asarray(features)
-    np.save(ROOT+'/data/train/split/features.npy',features)
-    # features = np.load(ROOT+'/data/train/split/features.npy')
-    # features, files, labels_dict = label_special_cases(features, files)
+    # np.save(ROOT+'/data/train/split/features.npy',features)
+    features = np.load(ROOT+'/data/train/split/features.npy')
+    features, files, labels_dict = label_special_cases(features, files)
     
     # reduce the dimension of the normal features
     dim_norm = 3
@@ -312,7 +312,7 @@ def relabel(n):
     features = np.asarray(features)
     # np.save(ROOT+'/data/train/split/features.npy',features)
     features = np.load(ROOT+'/data/train/split/features.npy')
-    # features, files, labels_dict = label_special_cases(features, files)
+    features, files, labels_dict = label_special_cases(features, files)
     
     # reduce the dimension of the normal features
     dim_norm = 3
@@ -368,17 +368,17 @@ if __name__ == '__main__':
     # 1. take the assembly apart
     print ('Ensure that the components to be split are placed in the required directory format')
     input('(Press Enter)')
-    print ('Step1. Split the assembly')
-    path_to_components = os.path.join(ROOT, 'data', 'train', 'models')
-    components = os.listdir(path_to_components)
-    for comp in components:
-        path_to_comp = os.path.join(path_to_components, comp)
-        files = os.listdir(path_to_comp)
-        for file in files:
-            if os.path.splitext(file)[1] == '.obj':
-                split(os.path.join(path_to_comp, file))
-    write_all_parts()
-    input('(Press Enter)')
+    # print ('Step1. Split the assembly')
+    # path_to_components = os.path.join(ROOT, 'data', 'train', 'models')
+    # components = os.listdir(path_to_components)
+    # for comp in components:
+    #     path_to_comp = os.path.join(path_to_components, comp)
+    #     files = os.listdir(path_to_comp)
+    #     for file in files:
+    #         if os.path.splitext(file)[1] == '.obj':
+    #             split(os.path.join(path_to_comp, file))
+    # write_all_parts()
+    # input('(Press Enter)')
     # 2. label these parts
     print ('Step2. Label the split parts')
     print ('The following parameters are automatically selected by the algorithm, please adjust later if you are not satisfied')

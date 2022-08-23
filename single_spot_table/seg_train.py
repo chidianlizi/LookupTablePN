@@ -24,11 +24,11 @@ import seg_dataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
-parser.add_argument('--model', default='pointnet2_my_seg', help='Model name [default: pointnet2_my_seg]')
+parser.add_argument('--model', default='pointnet2_my_seg_msg', help='Model name [default: pointnet2_my_seg]')
 parser.add_argument('--log_dir', default='../data/seg_model', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=2048, help='Point Number [default: 1920]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 101]')
-parser.add_argument('--batch_size', type=int, default=32, help='Batch Size during training [default: 16]')
+parser.add_argument('--batch_size', type=int, default=16, help='Batch Size during training [default: 16]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
@@ -148,11 +148,11 @@ def train():
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'), sess.graph)
         
         # restore
-        # saver.restore(sess, './log/model1.ckpt')
+        saver.restore(sess, '../data/seg_model/model1.ckpt')
 
         # Init variables
-        init = tf.global_variables_initializer()
-        sess.run(init)
+        # init = tf.global_variables_initializer()
+        # sess.run(init)
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,

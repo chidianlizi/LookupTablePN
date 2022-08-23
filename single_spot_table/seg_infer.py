@@ -277,9 +277,9 @@ def infer_all_sep():
                 center = 0.5 * (np.max(xyz,axis=0) + np.min(xyz,axis=0))
                 xyz -= center
                 xyz *= 0.0025
-                xyz_in_expand = np.tile(xyz,(32,1,1))
+                xyz_in_expand = np.tile(xyz,(16,1,1))
                 l = np.ones(xyz.shape[0])
-                l_expand = np.tile(l,(32,1))
+                l_expand = np.tile(l,(16,1))
 
                 res = model.run_cls(xyz_in_expand, l_expand, False)
                 fd1 = get_feature_dict_sep((xyz/0.0025)+center, res[0], normals_r, torch)
