@@ -30,7 +30,7 @@ sys.path.append(os.path.join(ROOT,'utils'))
 sys.path.append(os.path.join(ROOT,'pointnet2','utils'))
 from hdf5_util import *
 from foundation import draw, fps, load_pcd_data, fps
-from xml_parser_ds2 import list2array, parse_frame_dump
+from xml_parser import list2array, parse_frame_dump
 from math_util import rotate_mat
 # load label dictionary
 f = open('../data/train/parts_classification/label_dict.pkl', 'rb')

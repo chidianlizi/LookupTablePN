@@ -1,3 +1,8 @@
+#################################################################
+# Perform point cloud slicing, generate feature dictionary, make# 
+# lookup table, feature dictionary de-duplication, define       #
+# feature dictionary similarity                                 #
+#################################################################
 from genericpath import exists
 import open3d as o3d
 import numpy as np
@@ -24,13 +29,18 @@ import time
 # load label dictionary
 f = open('../data/train/parts_classification/label_dict.pkl', 'rb')
 lable_list = pickle.load(f)
+# reverse dictionary for subsequent processing
 label_dict_r = dict([val, key] for key, val in lable_list.items())   
 
 
 class WeldScene:
-    """
-    segment the labeled point cloud and create a dataset for semantic segmentation
-    """
+    '''
+    Component point cloud processing, mainly for slicing
+    
+    Attributes:
+        path_pc: path to labeled pc
+    
+    '''
     def __init__(self, pc_path):
         self.pc = o3d.geometry.PointCloud()
         xyzl = load_pcd_data(pc_path)
@@ -39,143 +49,95 @@ class WeldScene:
         self.l = xyzl[:,3]
         self.pc.points = o3d.utility.Vector3dVector(self.xyz)
 
-    def crop(self, weld_info, bbox=1, num_points=2048, vis=False):
-        """
-        bbox: number of cut bounding box, 1 = use one normal info, 2 = use two normals, for the rotated slice bbox must be 1
-        the default point cloud contains a minimum of 2048 points, if not enough then copy and fill
-        """
+    def crop(self, weld_info, crop_size=400, num_points=2048, vis=False):
+        '''Cut around welding spot
+        
+        Args:
+            weld_info (np.ndarray): welding info, including torch type, weld position, surface normals, torch pose 
+            crop_size (int): side length of cutting bbox in mm
+            num_points (int): the default point cloud contains a minimum of 2048 points, if not enough then copy and fill 
+            vis (Boolean): True for visualization of the slice while slicing
+        Returns:
+            xyzl_crop (np.ndarray): cropped pc with shape num_points*4, cols are x,y,z,label
+            cropped_pc (o3d.geometry.PointCloud): cropped pc for visualization
+            weld_info (np.ndarray): update the rotated component pose for torch (if there is)        
+        '''
         pc = copy.copy(self.pc)
-        if bbox == 1:
-            # tow surface normals at the welding spot
-            norm1 = np.around(weld_info[4:7], decimals=6)
-            norm2 = np.around(weld_info[7:10], decimals=6)
-            EXTENT = 390
-            CROP_EXTENT = np.array([EXTENT, EXTENT, EXTENT])
-            weld_spot = weld_info[1:4]
-            # move the coordinate center to the welding spot
-            pc.translate(-weld_spot)
-            # rotation at this welding spot
-            rot = weld_info[10:13]*np.pi/180
-            rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
-            # torch pose
-            pose = np.zeros((3,3))
-            pose[0:3, 0] = weld_info[14:17]
-            pose[0:3, 1] = weld_info[17:20]
-            pose[0:3, 2] = weld_info[20:23]
-            # cauculate the new pose after rotation
-            pose_new = np.matmul(rotation, pose)         
-            tf = np.zeros((4,4))
-            tf[3,3] = 1.0
-            tf[0:3,0:3] = rotation
-            pc.transform(tf)
-            # new normals
-            norm1_r = np.matmul(rotation, norm1.T)
-            norm2_r = np.matmul(rotation, norm2.T)
 
-            weld_info[4:7] = norm1_r
-            weld_info[7:10] = norm2_r
-            weld_info[14:17] = pose_new[0:3, 0]
-            weld_info[17:20] = pose_new[0:3, 1]
-            weld_info[20:23] = pose_new[0:3, 2]
+        # tow surface normals at the welding spot
+        norm1 = np.around(weld_info[4:7], decimals=6)
+        norm2 = np.around(weld_info[7:10], decimals=6)
+        extent = crop_size-10
+        crop_extent = np.array([extent,extent,extent])
+        weld_spot = weld_info[1:4]
+        # move the coordinate center to the welding spot
+        pc.translate(-weld_spot)
+        # rotation at this welding spot
+        rot = weld_info[10:13]*np.pi/180
+        rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
+        # torch pose
+        pose = np.zeros((3,3))
+        pose[0:3, 0] = weld_info[14:17]
+        pose[0:3, 1] = weld_info[17:20]
+        pose[0:3, 2] = weld_info[20:23]
+        # cauculate the new pose after rotation
+        pose_new = np.matmul(rotation, pose)         
+        tf = np.zeros((4,4))
+        tf[3,3] = 1.0
+        tf[0:3,0:3] = rotation
+        pc.transform(tf)
+        # new normals
+        norm1_r = np.matmul(rotation, norm1.T)
+        norm2_r = np.matmul(rotation, norm2.T)
 
-            coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=[0,0,0])
-            norm_ori = np.array([0, 0, 1])
-            # bounding box of cutting area
-            R = rotation_matrix_from_vectors(norm_ori, norm_ori) 
-            bbox = o3d.geometry.OrientedBoundingBox(center=(EXTENT/2-60)*norm1_r+(EXTENT/2-60)*norm2_r , R=R, extent=CROP_EXTENT)
+        weld_info[4:7] = norm1_r
+        weld_info[7:10] = norm2_r
+        weld_info[14:17] = pose_new[0:3, 0]
+        weld_info[17:20] = pose_new[0:3, 1]
+        weld_info[20:23] = pose_new[0:3, 2]
 
-            cropped_pc = pc.crop(bbox)
-            idx_crop = bbox.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop = self.xyz[idx_crop]
-            xyz_crop -= weld_spot
-            xyz_crop_new = np.matmul(rotation, xyz_crop.T).T
-            l_crop = self.l[idx_crop]
-            xyzl_crop = np.c_[xyz_crop_new, l_crop]
-            xyzl_crop = np.unique(xyzl_crop, axis=0)
-            while xyzl_crop.shape[0] < num_points:
-                xyzl_crop = np.vstack((xyzl_crop, xyzl_crop))
-            xyzl_crop = fps(xyzl_crop, num_points)
-            if vis:
-                o3d.visualization.draw_geometries([cropped_pc, coor1, bbox])
-                
-        if bbox == 2:
-            norm1 = np.around(weld_info[4:7], decimals=6)
-            norm2 = np.around(weld_info[7:10], decimals=6)
-            # print (norm1, norm2)
-            EXTENT_X = 390
-            EXTENT_Y = 390
-            EXTENT_Z = 250
-            CROP_EXTENT = np.array([EXTENT_X, EXTENT_Y, EXTENT_Z])
-            weld_spot = weld_info[1:4]
-            pc.translate(-weld_spot)
-            # rotation at this welding spot
-            rot = weld_info[10:13]*np.pi/180
-            rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
-            # torch pose
-            pose = np.zeros((3,3))
-            pose[0:3, 0] = weld_info[14:17]
-            pose[0:3, 1] = weld_info[17:20]
-            pose[0:3, 2] = weld_info[20:23]
-            # cauculate the new pose after rotation
-            pose_new = np.matmul(rotation, pose)     
-            tf = np.zeros((4,4))
-            tf[3,3] = 1.0
-            tf[0:3,0:3] = rotation
-            pc.transform(tf)
-            # new normals
-            norm1_r = np.matmul(rotation, norm1.T)
-            norm2_r = np.matmul(rotation, norm2.T)
+        coor1 = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=[0,0,0])
+        norm_ori = np.array([0, 0, 1])
+        # bounding box of cutting area
+        R = rotation_matrix_from_vectors(norm_ori, norm_ori) 
+        bbox = o3d.geometry.OrientedBoundingBox(center=(extent/2-60)*norm1_r+(extent/2-60)*norm2_r , R=R, extent=crop_extent)
 
-            weld_info[4:7] = norm1_r
-            weld_info[7:10] = norm2_r
-            weld_info[14:17] = pose_new[0:3, 0]
-            weld_info[17:20] = pose_new[0:3, 1]
-            weld_info[20:23] = pose_new[0:3, 2]
-            norm_ori = np.array([0, 0, 1])
-            R1 = rotation_matrix_from_vectors(norm_ori, norm1_r)
-            R2 = rotation_matrix_from_vectors(norm_ori, norm2_r)
-            bbox1 = o3d.geometry.OrientedBoundingBox(center=(EXTENT_Z/2-60)*norm1_r+(EXTENT_Y/2-60)*norm2_r , R=R1, extent=CROP_EXTENT)
-            bbox2 = o3d.geometry.OrientedBoundingBox(center=(EXTENT_Z/2-60)*norm2_r+(EXTENT_Y/2-60)*norm1_r, R=R2, extent=CROP_EXTENT)
-            coor = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=[0,0,0])
-
-            pc1 = pc.crop(bbox1)
-            idx_crop_1 = bbox1.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop_1 = self.xyz[idx_crop_1]
-            xyz_crop_1 -= weld_spot
-            xyz_crop_1_new = np.matmul(rotation, xyz_crop_1.T).T
-            l_crop_1 = self.l[idx_crop_1]
-            pc2 = pc.crop(bbox2)
-            idx_crop_2 = bbox2.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop_2 = self.xyz[idx_crop_2]
-            xyz_crop_2 -= weld_spot
-            xyz_crop_2_new = np.matmul(rotation, xyz_crop_2.T).T
-            l_crop_2 = self.l[idx_crop_2]
-
-            cropped_pc = pc1 + pc2
-
-            xyz_crop = np.vstack((xyz_crop_1_new, xyz_crop_2_new))
-            l_crop = np.hstack((l_crop_1, l_crop_2))
-            xyzl_crop = np.c_[xyz_crop, l_crop]
-            xyzl_crop = np.unique(xyzl_crop, axis=0)
-            while xyzl_crop.shape[0] < num_points:
-                xyzl_crop = np.vstack((xyzl_crop, xyzl_crop))
-            xyzl_crop = fps(xyzl_crop, num_points)
-            if vis:
-                o3d.visualization.draw_geometries([cropped_pc, coor, bbox1, bbox2])
-
+        cropped_pc = pc.crop(bbox)
+        idx_crop = bbox.get_point_indices_within_bounding_box(pc.points)
+        xyz_crop = self.xyz[idx_crop]
+        xyz_crop -= weld_spot
+        xyz_crop_new = np.matmul(rotation, xyz_crop.T).T
+        l_crop = self.l[idx_crop]
+        xyzl_crop = np.c_[xyz_crop_new, l_crop]
+        xyzl_crop = np.unique(xyzl_crop, axis=0)
+        while xyzl_crop.shape[0] < num_points:
+            xyzl_crop = np.vstack((xyzl_crop, xyzl_crop))
+        xyzl_crop = fps(xyzl_crop, num_points)
+        if vis:
+            o3d.visualization.draw_geometries([cropped_pc, coor1, bbox])
         return xyzl_crop, cropped_pc, weld_info
 
 
 def slice_one(pc_path, xml_path, name):
+    '''Slicing one component
+    
+    Args:
+        pc_path (str): path to a pcd format point cloud
+        xml_path (path): path to the xml file corresponding to the pc
+        name (str): name of the pc      
+    '''
     # create welding scene
     ws = WeldScene(pc_path)
+    # load welding info contains position, pose, normals, torch, etc.
     frames = list2array(parse_frame_dump(xml_path))
+    # a summary of the filename of all the welding slices in one component with theirs welding infomation 
     d = {}
     minpoints = 1000000
     for i in range(frames.shape[0]):
         weld_info = frames[i,3:].astype(float)
-        cxyzl, cpc, new_weld_info = ws.crop(weld_info=weld_info, bbox=1)
+        cxyzl, cpc, new_weld_info = ws.crop(weld_info=weld_info)
         # draw(cxyzl[:,0:3], cxyzl[:,3])
+        # save the pc slice
         points2pcd('../data/train/welding_zone/'+name+'_'+str(i)+'.pcd', cxyzl)
         d[name+'_'+str(i)] = new_weld_info
     print ('num of welding spots: ',len(d))      
@@ -183,6 +145,9 @@ def slice_one(pc_path, xml_path, name):
         pickle.dump(d,tf,protocol=2)
 
 def merge_lookup_table():
+    '''Merge all the lookup table of single component into one 
+
+    '''
     dict_all = {}
     path = '../data/train/lookup_table'
     files = os.listdir(path)
@@ -195,7 +160,8 @@ def merge_lookup_table():
 
 def get_feature_dict():
     '''Save a feature dictionary for each slice in a .pkl file, the dict contains
-    the nummber of each class and the coordinates of bounding box of each cluster of class'''
+    the nummber of each class and the coordinates of bounding box of each cluster of class
+    '''
     
     path = '../data/train/welding_zone'
     if not os.path.exists(os.path.join(ROOT, 'data/ss_lookup_table/dict')):
@@ -257,6 +223,15 @@ def get_feature_dict():
                 pickle.dump(feature_dict,tf,protocol=2)
 
 def similarity(feature_dict1, feature_dict2):
+    '''Calculate the similarity error between two feature dictionaries
+    
+    Args:
+        feature_dict1 (dict)
+        feature_dict2 (dict)
+    Returns:
+        Total similarity error (float)
+    
+    '''
     loss_amount = 0
     loss_geo = 0
     loss_norm = 0
@@ -293,8 +268,8 @@ def similarity(feature_dict1, feature_dict2):
 
 
 def decrease_lib():
-    '''
-    removal of redundant slices
+    '''Removal of redundant slices
+    
     '''
     path = os.path.join(ROOT,  'data/ss_lookup_table/dict')
     if not os.path.exists('../data/train/welding_zone_comp'):
@@ -336,8 +311,8 @@ def decrease_lib():
         # os.system('cp %s ./data/welding_zone_comp' % (src2))
 
 def move_files():
-    '''
-    move the feature dicts to the compact lib
+    '''Move the feature dicts to the compact lib
+    
     '''
     path_dict = '../data/ss_lookup_table/dict_comp'
     if not os.path.exists(path_dict):
@@ -351,6 +326,9 @@ def move_files():
             os.system('cp %s ../data/ss_lookup_table/dict_comp' % ('../data/ss_lookup_table/dict/'+name+'.pkl'))
 
 def norm_index():
+    '''Use normal strings to create sub-tables to speed up lookup
+    
+    '''
     path = '../data/ss_lookup_table/dict_comp'
     d = {}
     files = os.listdir(path)
@@ -380,7 +358,9 @@ def norm_index():
 
 
 if __name__ == '__main__':
+    # path to dir of welding slices
     path_welding_zone = '../data/train/welding_zone'
+    # path to lookup table
     path_lookup_table = '../data/train/lookup_table'
     if not os.path.exists(path_welding_zone):
         os.makedirs(path_welding_zone)

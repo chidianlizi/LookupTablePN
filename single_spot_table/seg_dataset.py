@@ -58,7 +58,8 @@ class SegH5Dataset(object):
     def _augment_batch_data(self, batch_data, batch_label):
         rotated_data = provider.rotate_point_cloud(batch_data)
         rotated_data = provider.rotate_perturbation_point_cloud(rotated_data)
-        jittered_data = provider.random_scale_point_cloud(rotated_data[:,:,0:3])
+        deformed_data = provider.deform_point_cloud(rotated_data)
+        jittered_data = provider.random_scale_point_cloud(deformed_data[:,:,0:3])
         jittered_data = provider.shift_point_cloud(jittered_data)
         jittered_data = provider.jitter_point_cloud(jittered_data)
         rotated_data[:,:,0:3] = jittered_data

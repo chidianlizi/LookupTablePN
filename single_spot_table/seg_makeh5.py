@@ -1,3 +1,7 @@
+#################################################################
+# Make pcd point cloud files into h5 format dataset for         # 
+# semantic segmentation training and testing                    #
+#################################################################
 import os
 import sys
 import numpy as np
@@ -16,20 +20,13 @@ from foundation import points2pcd, load_pcd_data
 output_filename_prefix = 'data/dataset/seg_dataset'
 
 
-def random_scale(xyzl):
-    if random.random() < 0.5:
-        random_x = random.uniform(0.75,1.25)
-        random_y = random.uniform(0.75,1.25)
-        random_z = random.uniform(0.75,1.25)
-        xyzl[:,0] *= random_x
-        xyzl[:,1] *= random_y
-        xyzl[:,2] *= random_z
-    return xyzl
-
-def processData(path,repeat_num, NUM_POINT):
-    """Scale point clouds and do augmentation, store the generated slices in ../data/train/aug
-    path: .pcd files
-    repeat_num:
+def processData(path, repeat_num, crop_size=400, NUM_POINT=2048):
+    """Scale point clouds, Do data copy, store the generated slices in ../data/train/aug
+    
+    Args:
+        path (str): path to welding slices
+        repeat_num (int): number of copies
+        crop_size (int): side length of cutting bbox in mm 
     """
     files = os.listdir(path)
     for file in files:
@@ -43,11 +40,9 @@ def processData(path,repeat_num, NUM_POINT):
                 xyzl[:,0:3] -= center
                 np.random.shuffle(xyzl)
                 xyzl_d = xyzl[0:NUM_POINT,:]
-                xyzl_t = random_scale(xyzl_d)
-                # ratio = 1./np.max(np.max(xyzl[:,0:3],axis=0))
-                ratio = 0.0025
-                xyzl_t[:,0:3] *= ratio                
-                points2pcd(os.path.join(ROOT,'data/train','aug',os.path.splitext(file)[0]+'_'+str(_)+'.pcd'),xyzl_t)
+                ratio = 1/crop_size
+                xyzl_d[:,0:3] *= ratio                
+                points2pcd(os.path.join(ROOT,'data/train','aug',os.path.splitext(file)[0]+'_'+str(_)+'.pcd'),xyzl_d)
 
 
 def wirteFiles(path):
@@ -62,10 +57,6 @@ def wirteFiles(path):
                 f = open(os.path.join(os.path.dirname(path),'train.txt'),'a') 
                 f.write(path+'/'+file+'\n')
                 f.close()
-            # elif 0.7 <= rdm < 0.8:
-                # f = open(os.path.join(os.path.dirname(path),'val.txt'),'a') 
-                # f.write(path+'/'+file+'\n')
-                # f.close()
             else:
                 f = open(os.path.join(os.path.dirname(path),'test.txt'),'a') 
                 f.write(path+'/'+file+'\n')
@@ -130,7 +121,7 @@ if __name__ == "__main__":
         os.makedirs(path_dataset)
     
     # random scale and augmentation     
-    processData(path,repeat_num = 4, NUM_POINT = 2048)
+    processData(path,repeat_num = 1, NUM_POINT = 2048)
     # split trainset and testset
     wirteFiles(path_aug)
     # wirte h5 format file

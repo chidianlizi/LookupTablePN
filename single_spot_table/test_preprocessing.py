@@ -151,89 +151,49 @@ class WeldScene_test:
         self.CROP_EXTENT = 100
         self.CROP_LEN = 400
 
-    def crop(self, weld_info, bbox=1, num_points=2048, vis=False):
-        """
-        bbox: number of cut bounding box, 1 = use one normal info, 2 = use two normals, for the rotated slice bbox must be 1
-        the default point cloud contains a minimum of 2048 points, if not enough then copy and fill
-        """
+    def crop(self, weld_info, crop_size=400, num_points=2048, vis=False):
         pc = copy.copy(self.pc)
-        if bbox == 1:
-            norm1 = np.around(weld_info[4:7], decimals=6)
-            norm2 = np.around(weld_info[7:10], decimals=6)
-            # print (norm1, norm2)
-            EXTENT = 390
-            rot = weld_info[10:13]*math.pi/180
-            rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
-            tf = np.zeros((4,4))           
-            tf[3,3] = 1.0
-            tf[0:3,0:3] = rotation
-            norm1_r = np.matmul(rotation, norm1.T)
-            norm2_r = np.matmul(rotation, norm2.T)
-            CROP_EXTENT = np.array([EXTENT, EXTENT, EXTENT])
-            weld_spot = weld_info[1:4]
-            pc.translate(-weld_spot)
 
-            norm_ori = np.array([0, 0, 1])
-            R = rotation_matrix_from_vectors(norm_ori, norm_ori)
-            bbox = o3d.geometry.OrientedBoundingBox(center=(EXTENT/2-60)*norm1_r+(EXTENT/2-60)*norm2_r , R=R, extent=CROP_EXTENT)
-            coor_world = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=np.array([0,0,0]))
+        norm1 = np.around(weld_info[4:7], decimals=6)
+        norm2 = np.around(weld_info[7:10], decimals=6)
+        # print (norm1, norm2)
+        
+        rot = weld_info[10:13]*math.pi/180
+        rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
+        tf = np.zeros((4,4))           
+        tf[3,3] = 1.0
+        tf[0:3,0:3] = rotation
+        norm1_r = np.matmul(rotation, norm1.T)
+        norm2_r = np.matmul(rotation, norm2.T)
+        extent = crop_size-10
+        crop_extent = np.array([extent, extent, extent])
+        weld_spot = weld_info[1:4]
+        pc.translate(-weld_spot)
 
-            pc.transform(tf)
-            xyz = np.asarray(pc.points)
-            cropped_pc = pc.crop(bbox)
-            idx_crop = bbox.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop = xyz[idx_crop]
-            xyz_crop = np.unique(xyz_crop, axis=0)
-            while xyz_crop.shape[0] < num_points:
-                xyz_crop = np.vstack((xyz_crop, xyz_crop))
-            xyz_crop = fps(xyz_crop, num_points)
-            if vis:
-                o3d.visualization.draw_geometries([cropped_pc, coor_world, bbox])
+        norm_ori = np.array([0, 0, 1])
+        R = rotation_matrix_from_vectors(norm_ori, norm_ori)
+        bbox = o3d.geometry.OrientedBoundingBox(center=(extent/2-60)*norm1_r+(extent/2-60)*norm2_r , R=R, extent=crop_extent)
+        coor_world = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=np.array([0,0,0]))
 
-        if bbox == 2:
-            norm1 = np.around(weld_info[4:7], decimals=6)
-            norm2 = np.around(weld_info[7:10], decimals=6)
-            rot = weld_info[10:13]*math.pi/180
-            rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
-            norm1_r = np.matmul(rotation, norm1.T)
-            norm2_r = np.matmul(rotation, norm2.T)
-            EXTENT_X = 390
-            EXTENT_Y = 390
-            EXTENT_Z = 250
-            CROP_EXTENT = np.array([EXTENT_X, EXTENT_Y, EXTENT_Z])
-            weld_spot = weld_info[1:4]
-            pc.translate(-weld_spot)
-            tf = np.zeros((4,4))
-            tf[3,3] = 1.0
-            tf[0:3,0:3] = rotation
-            pc.transform(tf)
-            norm_ori = np.array([0, 0, 1])
-            R1 = rotation_matrix_from_vectors(norm_ori, norm1_r)
-            R2 = rotation_matrix_from_vectors(norm_ori, norm2_r)
-            bbox1 = o3d.geometry.OrientedBoundingBox(center=(EXTENT_Z/2-60)*norm1_r+(EXTENT_Y/2-60)*norm2_r, R=R1, extent=CROP_EXTENT)
-            bbox2 = o3d.geometry.OrientedBoundingBox(center=(EXTENT_Z/2-60)*norm2_r+(EXTENT_Y/2-60)*norm1_r, R=R2, extent=CROP_EXTENT)
-            coor = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=[0,0,0])
+        pc.transform(tf)
+        xyz = np.asarray(pc.points)
+        cropped_pc = pc.crop(bbox)
+        idx_crop = bbox.get_point_indices_within_bounding_box(pc.points)
+        xyz_crop = xyz[idx_crop]
+        xyz_crop = np.unique(xyz_crop, axis=0)
+        while xyz_crop.shape[0] < num_points:
+            xyz_crop = np.vstack((xyz_crop, xyz_crop))
+        xyz_crop = fps(xyz_crop, num_points)
+        if vis:
+            o3d.visualization.draw_geometries([cropped_pc, coor_world, bbox])
 
-            xyz = np.asarray(pc.points)
-            pc1 = pc.crop(bbox1)
-            idx_crop_1 = bbox1.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop_1 = xyz[idx_crop_1]
-            pc2 = pc.crop(bbox2)
-            idx_crop_2 = bbox2.get_point_indices_within_bounding_box(pc.points)
-            xyz_crop_2 = xyz[idx_crop_2]
-
-            cropped_pc = pc1 + pc2
-            # o3d.visualization.draw_geometries([pc, coor, bbox1, bbox2])
-
-            xyz_crop = np.vstack((xyz_crop_1, xyz_crop_2))
-            xyz_crop = np.unique(xyz_crop, axis=0)
-            while xyz_crop.shape[0] < num_points:
-                xyz_crop = np.vstack((xyz_crop, xyz_crop))
-            xyz_crop = fps(xyz_crop, num_points)
 
         return xyz_crop, cropped_pc
 
 def slice_test(pc_path, path_xml, path_dist):
+    '''Create test slices with welding info without ground truth pose
+    
+    '''
     Scene = WeldScene_test(pc_path)
     namestr = os.path.splitext(os.path.split(path_xml)[-1])[0]
     print (namestr)
@@ -241,7 +201,7 @@ def slice_test(pc_path, path_xml, path_dist):
     frames = list2array(parse_frame_dump(path_xml))
     for i in range(frames.shape[0]):
         weld_info = frames[i,3:].astype(float)
-        cxyz, _ = Scene.crop(weld_info, bbox=1)
+        cxyz, _ = Scene.crop(weld_info)
         cpc = o3d.geometry.PointCloud()
         cpc.points = o3d.utility.Vector3dVector(cxyz)
         # coor = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=np.array([0,0,0]))

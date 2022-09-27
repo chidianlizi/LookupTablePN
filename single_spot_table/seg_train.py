@@ -148,11 +148,11 @@ def train():
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'), sess.graph)
         
         # restore
-        saver.restore(sess, '../data/seg_model/model1.ckpt')
+        # saver.restore(sess, '../data/seg_model/model1.ckpt')
 
         # Init variables
-        # init = tf.global_variables_initializer()
-        # sess.run(init)
+        init = tf.global_variables_initializer()
+        sess.run(init)
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
