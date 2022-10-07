@@ -1,9 +1,8 @@
 # LookupTablePN
 ## Environment Configuration
-An available docker can be found [here][1] with anaconda virtual environments named py37 and py27 already configured, where py37 is the python3 environment and py27 is the python2 environment.
- 
-  [1]: https://hub.docker.com/repository/docker/chidianlizi/pointnet
-If you want to configure your environment locally, we also recommend using [Anaconda3][https://www.anaconda.com/]. After installing Anaconda, do the following steps one by one.
+An available docker can be found [here](https://hub.docker.com/repository/docker/chidianlizi/pointnet) with anaconda virtual environments named py37 and py27 already configured, where py37 is the python3 environment and py27 is the python2 environment. If you want to configure your environment locally, we also recommend using [Anaconda3](https://www.anaconda.com). After installing Anaconda, do the following steps one by one.
+
+
 ```bash
 conda create -n py3 python=3.9.12
 conda activate py3
