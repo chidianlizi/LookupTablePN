@@ -1,15 +1,21 @@
 # LookupTablePN
-## Env
-export PATH=/home/teham/anaconda3/bin:$PATH
+## Environment Configuration
+An available docker can be found [here][1] with anaconda virtual environments named py37 and py27 already configured, where py37 is the python3 environment and py27 is the python2 environment.
+ 
+  [1]: https://hub.docker.com/repository/docker/chidianlizi/pointnet
+If you want to configure your environment locally, we also recommend using [Anaconda3][https://www.anaconda.com/]. After installing Anaconda, do the following steps one by one.
+```bash
+conda create -n py3 python=3.9.12
+conda activate py3
+pip install -r requirements.txt
+conda deactivate py3
+conda create -n py27 python=2.7.18
+conda activate py27
+conda install --channel https://conda.anaconda.org/marta-sd tensorflow-gpu=1.2.0
+pip install -r requirements_py27.txt
+conda deactivate py27
+```
 
-## Prerequisites
-The following libraries have no specific version requirements unless otherwise stated, I just list the versions I use.
-
- - python 3.9.12
- - numpy 1.21.5
- - open3d 0.14.1 
- - trimesh 3.12.6
- - scikit-learn 1.0.2
 
 ## Usage
 Before starting, please place the files in the following directory format:
@@ -25,6 +31,7 @@ LookupTablePN
 │   │   │   ├── ...
 ```
 ### Step 1. Clustering analysis of parts based on geometry & generation of labels
+First enter the python3 environment.
 ```bash
 cd ./single_spot_table
 python obj_geo_based_classification.py
@@ -69,19 +76,7 @@ one folder will be created in the 'data' directory:
 
 ### Step 4. Making training data set
 
-For this step, a python2 environment needs to be created, and the following packages are required:
-
- - python   2.7.18
- - tensorflow-gpu   1.2.0
- - open3d   0.9.0.0
- - h5py     2.10.0
- - numpy    1.16.6
-
-An available docker can be found [here][1] with an anaconda virtual environment named py27 already configured with these packages.
- 
-  [1]: https://hub.docker.com/repository/docker/chidianlizi/pointnet
-  
-Use the point cloud slices from the *data/train/welding_zone_comp* folder to create a dataset for semantic segmentation.
+Use the point cloud slices from the *data/train/welding_zone_comp* folder to create a dataset for semantic segmentation. Switch to python2 environment.
 ```bash
 source activate py27 #if use docker 
 cd ./single_spot_table
