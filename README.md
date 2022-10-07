@@ -1,5 +1,6 @@
 # LookupTablePN
-
+## Env
+export PATH=/home/teham/anaconda3/bin:$PATH
 
 ## Prerequisites
 The following libraries have no specific version requirements unless otherwise stated, I just list the versions I use.
