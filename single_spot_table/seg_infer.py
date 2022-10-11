@@ -12,20 +12,23 @@ import random
 import sys
 import scipy.linalg as linalg
 import math
-parser = argparse.ArgumentParser()
-parser.add_argument('--model_path', default='../data/seg_model/model1.ckpt', help='model checkpoint file path [default: log/model1.ckpt]')
-parser.add_argument('--test_input', default='./', help='path to input test xyz file')
-FLAGS = parser.parse_args()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(BASE_DIR)
 TF_OPS_DIR = os.path.join(ROOT, 'pointnet2', 'tf_ops')
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_path', default='../data/seg_model/model1.ckpt', help='model checkpoint file path [default: log/model1.ckpt]')
+parser.add_argument('--test_input', default='../data/test/welding_zone_test', help='path to input test xyz file')
+parser.add_argument('--test_one_component', default=None, help='path to folder of single test component')
+FLAGS = parser.parse_args()
+
+
 sampling_module = tf.load_op_library(os.path.join(TF_OPS_DIR, 'sampling/tf_sampling_so.so'))
 grouping_module = tf.load_op_library(os.path.join(TF_OPS_DIR, 'grouping/tf_grouping_so.so'))
 interpolation_module = tf.load_op_library(os.path.join(TF_OPS_DIR,'3d_interpolation/tf_interpolate_so.so'))
 
 MODEL_PATH = FLAGS.model_path
 INPUT_PATH = FLAGS.test_input
+TEST_COMP = FLAGS.test_one_component
 sys.path.append(os.path.join(ROOT,'utils'))
 sys.path.append(os.path.join(ROOT,'pointnet2','utils'))
 from hdf5_util import *
@@ -33,7 +36,8 @@ from foundation import draw, fps, load_pcd_data, fps
 from xml_parser import list2array, parse_frame_dump
 from math_util import rotate_mat
 # load label dictionary
-f = open('../data/train/parts_classification/label_dict.pkl', 'rb')
+
+f = open(ROOT+'/data/train/parts_classification/label_dict.pkl', 'rb')
 lable_list = pickle.load(f)
 labeldict = dict([val, key] for key, val in lable_list.items())   
 
@@ -221,24 +225,26 @@ def write_found_pose_in_sep(folder, filename, frame, pose, rot):
     ZVek.setAttribute('Y', str(zv_r[1]))
     ZVek.setAttribute('Z', str(zv_r[2]))
     Frame.appendChild(ZVek)
-
-    f = open('../data/test/results/'+folder+'/'+filename+'.xml','w')
+    f = open(ROOT+'/data/test/results/'+folder+'/'+filename+'.xml','w')
     f.write(doc.toprettyxml(indent = '  '))
     f.close()
 
 
 
 
-def infer_all_sep():
-    with open('../data/train/lookup_table/lookup_table.pkl', 'rb') as f:
+def infer_all_sep(path_test_component=None):
+    with open(ROOT+'/data/train/lookup_table/lookup_table.pkl', 'rb') as f:
         dict_all = pickle.load(f)
-    with open('../data/ss_lookup_table/norm_fd.pkl', 'rb') as g:
+    with open(ROOT+'/data/ss_lookup_table/norm_fd.pkl', 'rb') as g:
         norm_fd = pickle.load(g)
     model = Model(MODEL_PATH)
-    folders = os.listdir(INPUT_PATH)
+    if not path_test_component == None:
+        folders = [os.path.split(path_test_component)[-1]]
+    else:
+        folders = os.listdir(INPUT_PATH)
     for folder in folders:
-        if not os.path.exists('../data/test/results/'+folder):
-            os.makedirs('../data/test/results/'+folder)
+        if not os.path.exists(ROOT+'/data/test/results/'+folder):
+            os.makedirs(ROOT+'/data/test/results/'+folder)
         else:
             continue
         match_dict = {}
@@ -321,15 +327,15 @@ def infer_all_sep():
                 match_dict[namestr] = matched_name
                 end = time.time()
                 t.append(end-start)
-        with open(os.path.join('../data/test/results', folder, 'matched_dict.pkl'), 'wb') as tf:
+        with open(os.path.join(ROOT+'/data/test/results', folder, 'matched_dict.pkl'), 'wb') as tf:
             pickle.dump(match_dict,tf,protocol=2)
         print 'Average look up time for one test'
         print np.mean(np.array(t))
 
 
 if __name__=='__main__':
-    infer_all_sep()
-    path = '../data/test/results'
+    infer_all_sep(TEST_COMP)
+    path = ROOT+'/data/test/results'
     folders = os.listdir(path)
     for folder in folders:
         files = os.listdir(os.path.join(path, folder))

@@ -8,7 +8,6 @@
 # little manually adjusted.                                     #
 #################################################################
 
-from importlib.resources import path
 import os
 from re import L
 import sys
@@ -21,7 +20,6 @@ from sklearn.cluster import SpectralClustering
 from sklearn.metrics import calinski_harabasz_score
 import pickle
 import matplotlib.pyplot as plt
-from yaml import ValueToken
 
 CURRENT_PATH = os.path.abspath(__file__)
 BASE = os.path.dirname(CURRENT_PATH) 
@@ -271,7 +269,7 @@ class PFE():
         n_finl = 0
         score_finl = 0
         for _, gamma in enumerate((0.001, 0.005, 0.1, 0.5, 1)):
-            for n in range(3,16):
+            for n in range(3,20):
                 y_pred = SpectralClustering(n_clusters=n, gamma=gamma).fit_predict(features_norma)
                 score = calinski_harabasz_score(features_norma, y_pred)
                 if score > score_finl:

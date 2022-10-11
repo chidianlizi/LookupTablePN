@@ -25,7 +25,7 @@ import seg_dataset
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 parser.add_argument('--model', default='pointnet2_my_seg_msg', help='Model name [default: pointnet2_my_seg]')
-parser.add_argument('--log_dir', default='../data/seg_model', help='Log dir [default: log]')
+parser.add_argument('--log_dir', default=ROOT_DIR+'/data/seg_model', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=2048, help='Point Number [default: 1920]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 101]')
 parser.add_argument('--batch_size', type=int, default=16, help='Batch Size during training [default: 16]')
@@ -62,10 +62,10 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
-f = open('../data/train/parts_classification/label_dict.pkl', 'rb')
+f = open(ROOT_DIR+'/data/train/parts_classification/label_dict.pkl', 'rb')
 lable_list = pickle.load(f)
 
-NUM_CLASSES = 2
+NUM_CLASSES = len(lable_list)
 TRAIN_DATASET = seg_dataset.SegH5Dataset(os.path.join(ROOT_DIR, 'data/train/dataset/seg_dataset_train.txt'), batch_size=BATCH_SIZE, npoints=NUM_POINT, shuffle=True)
 TEST_DATASET = seg_dataset.SegH5Dataset(os.path.join(ROOT_DIR, 'data/train/dataset/seg_dataset_test.txt'), batch_size=BATCH_SIZE, npoints=NUM_POINT, shuffle=True)
 

@@ -20,7 +20,7 @@ from foundation import points2pcd, load_pcd_data
 output_filename_prefix = 'data/dataset/seg_dataset'
 
 
-def processData(path, repeat_num, crop_size=400, NUM_POINT=2048):
+def processData(path, path_aug, crop_size=400, NUM_POINT=2048):
     """Scale point clouds, Do data copy, store the generated slices in ../data/train/aug
     
     Args:
@@ -33,16 +33,15 @@ def processData(path, repeat_num, crop_size=400, NUM_POINT=2048):
         if os.path.splitext(file)[1] == '.pcd':
             pts = load_pcd_data(os.path.join(path,file))
             data = pts[:,0:4]
-            for _ in range(repeat_num):
-                xyzl = data.copy()
-                # print (xyzl.shape)
-                center = 0.5 * (np.max(xyzl,axis=0) + np.min(xyzl,axis=0))[0:3]
-                xyzl[:,0:3] -= center
-                np.random.shuffle(xyzl)
-                xyzl_d = xyzl[0:NUM_POINT,:]
-                ratio = 1/crop_size
-                xyzl_d[:,0:3] *= ratio                
-                points2pcd(os.path.join(ROOT,'data/train','aug',os.path.splitext(file)[0]+'_'+str(_)+'.pcd'),xyzl_d)
+            xyzl = data.copy()
+            # print (xyzl.shape)
+            center = 0.5 * (np.max(xyzl,axis=0) + np.min(xyzl,axis=0))[0:3]
+            xyzl[:,0:3] -= center
+            np.random.shuffle(xyzl)
+            xyzl_d = xyzl[0:NUM_POINT,:]
+            ratio = 1/crop_size
+            xyzl_d[:,0:3] *= ratio                
+            points2pcd(os.path.join(path_aug,os.path.splitext(file)[0]+'.pcd'),xyzl_d)
 
 
 def wirteFiles(path):

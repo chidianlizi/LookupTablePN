@@ -20,7 +20,7 @@ PATH_COMP = '../data/train/models'
 PATH_XYZ = '../data/train/unlabeled_pc'
 PATH_PCD = '../data/train/labeled_pc' 
 
-def sample_and_label(path, label_dict, density=40):
+def sample_and_label(path, path_pcd, path_xyz, label_dict, class_dict, density=40):
     '''Convert mesh to pointcloud
     two pc will be generated, one is .pcd format with labels, one is .xyz format withou labels
     Args:
@@ -41,7 +41,7 @@ def sample_and_label(path, label_dict, density=40):
             mesh = o3d.io.read_triangle_mesh(os.path.join(path, file))
             if np.asarray(mesh.triangles).shape[0] > 1:
                 key = os.path.abspath(os.path.join(path, file))
-                label = label_dict[classdict[key]]
+                label = label_dict[class_dict[key]]
                 # get number of points according to surface area
                 number_points = int(mesh.get_surface_area()/density) 
                 # poisson disk sampling
@@ -49,12 +49,12 @@ def sample_and_label(path, label_dict, density=40):
                 xyz = np.asarray(pc.points)
                 l = label * np.ones(xyz.shape[0])
                 xyzl = np.c_[xyz, l]
-                print (file, 'sampled point cloud: ', xyzl.shape)
+                # print (file, 'sampled point cloud: ', xyzl.shape)
                 allpoints = np.concatenate((allpoints, xyzl), axis=0)
-    points2pcd(os.path.join(PATH_PCD, namestr+'.pcd'), allpoints[1:])
+    points2pcd(os.path.join(path_pcd, namestr+'.pcd'), allpoints[1:])
     pc = o3d.geometry.PointCloud()
     pc.points = o3d.utility.Vector3dVector(allpoints[1:,0:3])
-    o3d.io.write_point_cloud(os.path.join(PATH_XYZ, namestr+'.xyz'),pc)
+    o3d.io.write_point_cloud(os.path.join(path_xyz, namestr+'.xyz'),pc)
 
 
 if __name__ == '__main__':
@@ -91,7 +91,7 @@ if __name__ == '__main__':
             print ('sampling... ...', folder)
             print (str(count)+'/'+str(total-2))
             print(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
-            sample_and_label(os.path.join(path, folder), label_dict)
+            sample_and_label(os.path.join(path, folder),PATH_PCD, PATH_XYZ, label_dict, classdict)
     
 
     # =======================================================
