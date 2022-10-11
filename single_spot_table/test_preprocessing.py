@@ -15,7 +15,7 @@ from xml_parser import parse_frame_dump, list2array
 from foundation import points2pcd, load_pcd_data, fps
 from math_util import rotate_mat, rotation_matrix_from_vectors
 
-def sample_test_pc(path):
+def sample_test_pc(path, density=40):
     '''Convert mesh to pointcloud without labels
     
     '''
@@ -24,7 +24,7 @@ def sample_test_pc(path):
     for file in files:
         if file == namestr+'.obj':
             mesh = o3d.io.read_triangle_mesh(os.path.join(path, file))                 
-            number_points = int(mesh.get_surface_area()/40) # get number of points according to surface area
+            number_points = int(mesh.get_surface_area()/density) # get number of points according to surface area
             pc = mesh.sample_points_poisson_disk(number_points, init_factor=5) # poisson disk sampling
             xyz = np.asarray(pc.points)
             pc = o3d.geometry.PointCloud()
@@ -190,7 +190,7 @@ class WeldScene_test:
 
         return xyz_crop, cropped_pc
 
-def slice_test(pc_path, path_xml, path_dist):
+def slice_test(pc_path, path_xml, path_dist, crop_size, num_points):
     '''Create test slices with welding info without ground truth pose
     
     '''
@@ -201,7 +201,7 @@ def slice_test(pc_path, path_xml, path_dist):
     frames = list2array(parse_frame_dump(path_xml))
     for i in range(frames.shape[0]):
         weld_info = frames[i,3:].astype(float)
-        cxyz, _ = Scene.crop(weld_info)
+        cxyz, _ = Scene.crop(weld_info, crop_size=crop_size, num_points=num_points)
         cpc = o3d.geometry.PointCloud()
         cpc.points = o3d.utility.Vector3dVector(cxyz)
         # coor = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=np.array([0,0,0]))
