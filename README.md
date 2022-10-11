@@ -48,7 +48,7 @@ LookupTablePN
 │   │   │   │   ├── componentname2.xml
 │   │   │   ├── ...
 ```
-### Step 1. Data Pre-processing & Making lookup Table
+### Training Step 1. Data Pre-processing & Making lookup Table
 In Python3 environment
 ```python
 lut = LookupTable(path_data='./data', label='PDL', hfd_path_classes=None, pcl_density=40, crop_size=400, num_points=2048)
@@ -63,7 +63,7 @@ lut.make()
 - crop_size: Edge lengths of point cloud slices in millimeters
 - num_points: Number of points contained in the point cloud slice 
 
-### Step 2. Train PN++
+### Training Step 2. Train PN++
 In Python2 environment
 ```python
 tr = TrainPointNet2(path_data='./data')
@@ -76,14 +76,42 @@ tr.train(log_dir='./data/seg_model', gpu=0, num_point=2048, max_epoch=100, batch
 > class train.TrainPointNet2(path_data)
 - path_data: The path to the data folder, see readme for the specific directory structure
 
->make_dataset(crop_size=400, num_points=2048)
+> make_dataset(crop_size=400, num_points=2048)
 - crop_size: Edge lengths of point cloud slices in millimeters. Must be consistent with the values used in the previous lookup table creation [default: 400]
 - num_points: Number of points contained in the point cloud slice  [default: 2048]
 
->train(log_dir, gpu=0, num_point=2048, max_epoch=100, batch_size=16, learning_rate=0.001)
+> train(log_dir, gpu=0, num_point=2048, max_epoch=100, batch_size=16, learning_rate=0.001)
 - log_dir: path to the pn++ model
 - gpu: GPU to use [default: 0]
 - num_point: Point Number [default: 2048]
 - max_epoch: Epoch to run [default: 100]
 - batch_size: Batch Size during training [default: 16]
 - learning_rate: Initial learning rate [default: 0.001]
+
+### Testing Step 1. Data Pre-processing
+In Python3 environment
+```python
+te = PoseLookup(path_data='./data')
+te.preprocessing(path_test_component='./data/test/models/201910292399', pcl_density=40, crop_size=400, num_points=2048)
+
+```
+> class test.PoseLookup(path_data)
+- path_data: The path to the data folder, see readme for the specific directory structure
+
+> preprocessing(path_test_component, pcl_density=40, crop_size=400, num_points=2048)
+- path_test_component: path to the test component
+- pcl_density: A parameter that controls the density of the point cloud, the smaller the value the higher the density
+- crop_size: Edge lengths of point cloud slices in millimeters. Must be consistent with the values used in the previous lookup table creation [default: 400]
+- num_points: Number of points contained in the point cloud slice  [default: 2048]
+
+### Testing Step 2. Inference
+
+In Python2 environment
+```python
+te = PoseLookup(path_data='./data')
+te.inference(model_path='./data/seg_model/model1.ckpt', test_input='./data/test/welding_zone_test', test_one_component='./data/test/models/201910292399')
+```
+> inference(model_path, test_input, test_one_component)
+- model_path: path to the pn++ model [default: './data/seg_model/model1.ckpt']
+- test_input: path to the folder of welding slices for testing [default: './data/test/welding_zone_test']
+- test_one_component: if only one component will be tested, enter the path here [default: None]
