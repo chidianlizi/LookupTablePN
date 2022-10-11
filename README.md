@@ -49,6 +49,7 @@ LookupTablePN
 │   │   │   ├── ...
 ```
 ### Step 1. Data Pre-processing & Making lookup Table
+In Python3 environment
 ```python
 lut = LookupTable(path_data='./data', label='PDL', hfd_path_classes=None, pcl_density=40, crop_size=400, num_points=2048)
 lut.make()
@@ -63,6 +64,7 @@ lut.make()
 - num_points: Number of points contained in the point cloud slice 
 
 ### Step 2. Train PN++
+In Python2 environment
 ```python
 tr = TrainPointNet2(path_data='./data')
 # make dataset
