@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', default='../data/seg_model/model1.ckpt', help='model checkpoint file path [default: log/model1.ckpt]')
 parser.add_argument('--test_input', default='../data/test/welding_zone_test', help='path to input test xyz file')
 parser.add_argument('--test_one_component', default=None, help='path to folder of single test component')
+parser.add_argument('--batch_size', default=16, help='keep the same size with training')
 FLAGS = parser.parse_args()
 
 
@@ -35,13 +36,17 @@ from hdf5_util import *
 from foundation import draw, fps, load_pcd_data, fps
 from xml_parser import list2array, parse_frame_dump
 from math_util import rotate_mat
+
 # load label dictionary
 
 f = open(ROOT+'/data/train/parts_classification/label_dict.pkl', 'rb')
 lable_list = pickle.load(f)
 labeldict = dict([val, key] for key, val in lable_list.items())   
 
-
+# label_dict = {'class_0': 0, 'class_1': 1, 'class_2': 2, 'class_3': 3, 'class_4': 4, 
+#                 'class_5': 5, 'class_6': 6, 'class_7': 7, 'class_8': 8, 'class_9': 9, 
+#                 'class_10': 10, 'class_11': 11}
+# labeldict = dict([val, key] for key, val in label_dict.items())  
 class Model():
     '''Import model
     '''
@@ -118,7 +123,7 @@ def similarity_sep(feature_dict1, feature_dict2):
     loss_norm = np.sum((norm1-norm2)**2)
     torch1 = feature_dict1['torch']
     torch2 = feature_dict2['torch']
-    loss_torch = (torch1-torch2)**2
+    loss_torch = int(torch1==torch2)
     for i in range(len(labeldict)):
         # print feature_dict1[labeldict[i]]
         # get the number of each class
@@ -157,8 +162,8 @@ def write_found_pose_in_sep(folder, filename, frame, pose, rot):
     SNaht = doc.createElement('SNaht')
     SNaht.setAttribute('Name',frame[0])
     SNaht.setAttribute('ZRotLock',frame[1])
-    SNaht.setAttribute('WkzWkl',frame[2])
-    SNaht.setAttribute('WkzName',torch_dict[frame[3]])
+    SNaht.setAttribute('WkzName',frame[2])
+    SNaht.setAttribute('WkzWkl',frame[3])
     FRAME_DUMP.appendChild(SNaht)
 
     Kontur = doc.createElement('Kontur')
@@ -204,21 +209,23 @@ def write_found_pose_in_sep(folder, filename, frame, pose, rot):
     Frame.appendChild(Pos)
     
     rot_matrix = linalg.expm(np.cross(np.eye(3), [1,0,0] / linalg.norm([1,0,0]) * (-rot[0])))
-    xv = pose[14:17]
+    print(pose)
+    xv = pose[-9:-6]
+
     xv_r = np.matmul(rot_matrix, xv.T)
     XVek = doc.createElement('XVek')
     XVek.setAttribute('X', str(xv_r[0]))
     XVek.setAttribute('Y', str(xv_r[1]))
     XVek.setAttribute('Z', str(xv_r[2]))
     Frame.appendChild(XVek)
-    yv = pose[17:20]
+    yv = pose[-6:-3]
     yv_r = np.matmul(rot_matrix, yv.T)
     YVek = doc.createElement('YVek')
     YVek.setAttribute('X', str(yv_r[0]))
     YVek.setAttribute('Y', str(yv_r[1]))
     YVek.setAttribute('Z', str(yv_r[2]))
     Frame.appendChild(YVek)
-    zv = pose[20:23]
+    zv = pose[-3:]
     zv_r = np.matmul(rot_matrix, zv.T)
     ZVek = doc.createElement('ZVek')
     ZVek.setAttribute('X', str(zv_r[0]))
@@ -262,6 +269,7 @@ def infer_all_sep(path_test_component=None):
                 pc = o3d.io.read_point_cloud(file_path)
                 coor_world = o3d.geometry.TriangleMesh.create_coordinate_frame(size=200, origin=np.array([0,0,0]))
                 src_xml = os.path.join(INPUT_PATH, folder, namestr+'.xml')
+                
                 frames = list2array(parse_frame_dump(src_xml))
                 torch = frames[0][3].astype(float)
                 normals_1 = frames[0][7:10].astype(float)
@@ -271,6 +279,7 @@ def infer_all_sep(path_test_component=None):
                 rotation = rotate_mat(axis=[1,0,0], radian=rot[0])
                 norm1_r = np.matmul(rotation, normals_1.T)
                 norm2_r = np.matmul(rotation, normals_2.T)
+                # normals_r = np.hstack((norm1_r, norm2_r))
                 normals_r = norm1_r + norm2_r
                 norm_r = np.round(normals_r.astype(float), 2)
                 norm_s = ''
@@ -283,9 +292,9 @@ def infer_all_sep(path_test_component=None):
                 center = 0.5 * (np.max(xyz,axis=0) + np.min(xyz,axis=0))
                 xyz -= center
                 xyz *= 0.0025
-                xyz_in_expand = np.tile(xyz,(16,1,1))
+                xyz_in_expand = np.tile(xyz,(int(FLAGS.batch_size),1,1))
                 l = np.ones(xyz.shape[0])
-                l_expand = np.tile(l,(16,1))
+                l_expand = np.tile(l,(int(FLAGS.batch_size),1))
 
                 res = model.run_cls(xyz_in_expand, l_expand, False)
                 fd1 = get_feature_dict_sep((xyz/0.0025)+center, res[0], normals_r, torch)

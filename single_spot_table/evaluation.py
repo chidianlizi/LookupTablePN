@@ -58,13 +58,14 @@ def visualizer(fig_path, pcd, torch, pose):
     pos = np.zeros((3,3))
     pos[0:3, 0] = pose[4:7]
     pos[0:3, 1] = pose[7:10]
-    pos[0:3, 2] = pose[10:23]
+    pos[0:3, 2] = pose[10:13]
     pose_new = np.matmul(rotation, pos)
     tf = np.zeros((4,4))
     tf[0:3,0:3] = pose_new
     tf[3,3] = 1.0
     torch.compute_vertex_normals()
     torch.transform(tf)
+
     origin_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=300, origin=[0, 0, 0])
     
     vis.add_geometry(origin_frame)
@@ -182,14 +183,14 @@ def show_error():
                         fig_path3 = os.path.join(figs_path, slice_name+'_templetewithitsgt_'+matched_temp+'.png')
                         visualizer(fig_path1, slice_pc, o3d.io.read_triangle_mesh(path_torch), r[ii][-13:])
                         visualizer(fig_path2, slice_pc, o3d.io.read_triangle_mesh(path_torch), t[jj][-13:])
-                        if pose_matched[0] == 0:
+                        if pose_matched[0] == 45:
                             path_torch_temp = path_torch_1
-                        else:
+                        elif pose_matched[0] == 10:
                             path_torch_temp = path_torch_2
                         visualizer_3(fig_path3, matched_pc, o3d.io.read_triangle_mesh(path_torch_temp), pose_matched[-13:])
-                        if (r[ii,0]==0):
+                        if (r[ii,0]==45):
                             mesh_torch = copy(torch1)
-                        else:
+                        elif (r[ii,0]==10):
                             mesh_torch = copy(torch2)
                             mesh_torch.compute_vertex_normals()
                             mesh_torch.paint_uniform_color(green)
@@ -218,9 +219,9 @@ def show_error():
                             visualizer(fig_path2, slice_pc, o3d.io.read_triangle_mesh(path_torch), t[jj][-13:])
                             visualizer_3(fig_path3, matched_pc, o3d.io.read_triangle_mesh(path_torch_temp), pose_matched[-13:])
 
-                            if (r[ii,0]==0):
+                            if (r[ii,0]==45):
                                 mesh_torch = copy(torch1)
-                            else:
+                            elif (r[ii,0]==10):
                                 mesh_torch = copy(torch2)
 
                             mesh_torch.compute_vertex_normals()
@@ -229,9 +230,9 @@ def show_error():
                             elements.append(mesh_torch)
                         else:
                             num_error += 1
-                            if r[ii, 0] == 0:
+                            if r[ii, 0] == 45:
                                 path_torch = path_torch_1
-                            else:
+                            elif r[ii, 0] == 10:
                                 path_torch = path_torch_2
                             mesh_torch = o3d.io.read_triangle_mesh(path_torch)
                             mesh_torch.compute_vertex_normals()
@@ -254,9 +255,9 @@ def show_error():
                                 fig_path3 = os.path.join(figs_path, slice_name+'_templetewithitsgt_'+matched_temp+'.png')
                                 visualizer(fig_path1, slice_pc, o3d.io.read_triangle_mesh(path_torch), r[ii][-13:])
                                 visualizer(fig_path2, slice_pc, o3d.io.read_triangle_mesh(path_torch), t[jj][-13:])
-                                if pose_matched[0] == 0:
+                                if pose_matched[0] == 45:
                                     path_torch_temp = path_torch_1
-                                else:
+                                elif pose_matched[0] == 10:
                                     path_torch_temp = path_torch_2
                                 visualizer_3(fig_path3, matched_pc, o3d.io.read_triangle_mesh(path_torch_temp), pose_matched[-13:])
                                 mesh_torch.paint_uniform_color(red)
@@ -279,11 +280,12 @@ def show_error():
                                 fig_path1 = os.path.join(figs_path, slice_name+'_prediction.png')
                                 fig_path2 = os.path.join(figs_path, slice_name+'_gt.png')
                                 fig_path3 = os.path.join(figs_path, slice_name+'_templetewithitsgt_'+matched_temp+'.png')
+                                
                                 visualizer(fig_path1, slice_pc, o3d.io.read_triangle_mesh(path_torch), r[ii][-13:])
                                 visualizer(fig_path2, slice_pc, o3d.io.read_triangle_mesh(path_torch), t[jj][-13:])
-                                if pose_matched[0] == 0:
+                                if pose_matched[0] == 45:
                                     path_torch_temp = path_torch_1
-                                else:
+                                elif pose_matched[0] == 10:
                                     path_torch_temp = path_torch_2
                                 visualizer_3(fig_path3, matched_pc, o3d.io.read_triangle_mesh(path_torch_temp), pose_matched[-13:])
                                 mesh_torch.paint_uniform_color(blue)

@@ -7,11 +7,10 @@ def parse_frame_dump(xml_file):
     root = tree.getroot()
     
     total_info = [] # list of all infos about the torch, welding spots and the transformation matrix
-    
 
     for SNaht in root.findall('SNaht'):
         
-        torch = [SNaht.get('Name'), SNaht.get('ZRotLock'), SNaht.get('WkzWkl'), SNaht.get('WkzName')]
+        torch = [SNaht.get('Name'), SNaht.get('ZRotLock'), SNaht.get('WkzName'), SNaht.get('WkzWkl')]
         weld_frames = [] # list of all weld_frames as np.arrays(X,Y,Z) in mm
         pose_frames = [] # list of all pose_frames as 4x4 homogenous transforms
         
@@ -32,7 +31,10 @@ def parse_frame_dump(xml_file):
                     Rot_Y = float(Rot.get('Y'))
                     Rot_Z = float(Rot.get('Z'))
                 for Ext_Achswerte in Punkt.findall('Ext-Achswerte'):
-                    EA3 = float(Ext_Achswerte.get('EA3'))
+                    if Ext_Achswerte.get('EA3') == None:
+                        EA3 = float(Ext_Achswerte.get('EA4'))
+                    else: 
+                        EA3 = float(Ext_Achswerte.get('EA3'))
                 weld_frames.append({'position': np.array([X, Y, Z]), 'norm': Norm, 'rot': np.array([Rot_X, Rot_Y, Rot_Z]), 'EA': EA3})
 
         # desired model output
@@ -76,13 +78,14 @@ def list2array(total_info):
             weld_info.append(info['torch'][0])
             weld_info.append(info['torch'][1])
             weld_info.append(info['torch'][2])
-            torch = info['torch'][3]
-            if torch == 'MRW510_10GH' or torch == 'MRW510_CDD_10GH':
-                weld_info.append(0)
-            elif torch  == 'TAND_GERAD_DD':
-                weld_info.append(1)
-            else:
-                weld_info.append(2)
+            weld_info.append(info['torch'][3])
+            # torch = info['torch'][3]
+            # if torch == 'MRW510_10GH' or torch == 'MRW510_CDD_10GH' or torch == 'TL2000_EFF20_17SO':
+            #     weld_info.append(0)
+            # elif torch  == 'TAND_GERAD_DD':
+            #     weld_info.append(1)
+            # else:
+            #     weld_info.append(2)
             weld_info.append(spot['position'][0])
             weld_info.append(spot['position'][1])
             weld_info.append(spot['position'][2])

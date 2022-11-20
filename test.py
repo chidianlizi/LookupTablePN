@@ -79,19 +79,24 @@ class PoseLookup():
     def inference(self,
                   model_path,
                   test_input,
-                  test_one_component):
+                  test_one_component,
+                  batch_size):
         '''test a component
         
         Args:
             model_path: path to the pn++ model [default: './data/seg_model/model1.ckpt']
             test_input: path to the folder of welding slices for testing [default: './data/test/welding_zone_test']
             test_one_component: if only one component will be tested, enter the path here [default: None]
+            batch_size: keep the same batch size with training
         '''
-        args = " --model_path='"+model_path+"' --test_input="+test_input+" --test_one_component="+test_one_component
+        args = " --model_path='"+model_path+"' --test_input="+test_input+" --test_one_component="+test_one_component\
+            +" --batch_size="+str(batch_size)
         path_to_inference = './single_spot_table/seg_infer.py'
         os.system('python '+path_to_inference+args)
         
         
 if __name__ == '__main__':
     te = PoseLookup(path_data='./data')
-    te.preprocessing('./data/test/models/201910292399')
+    # te.preprocessing('./data/test/models/22-10-14_Trailer')
+    te.inference(model_path='./data/seg_model/model1.ckpt', test_input='./data/test/welding_zone_test', \
+        test_one_component='./data/test/models/22-10-14_Trailer', batch_size=16)

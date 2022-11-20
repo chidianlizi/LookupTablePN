@@ -109,9 +109,10 @@ te.preprocessing(path_test_component='./data/test/models/201910292399', pcl_dens
 In Python2 environment
 ```python
 te = PoseLookup(path_data='./data')
-te.inference(model_path='./data/seg_model/model1.ckpt', test_input='./data/test/welding_zone_test', test_one_component='./data/test/models/201910292399')
+te.inference(model_path='./data/seg_model/model1.ckpt', test_input='./data/test/welding_zone_test', test_one_component='./data/test/models/201910292399', batch_size=16)
 ```
 > inference(model_path, test_input, test_one_component)
 - model_path: path to the pn++ model [default: './data/seg_model/model1.ckpt']
 - test_input: path to the folder of welding slices for testing [default: './data/test/welding_zone_test']
 - test_one_component: if only one component will be tested, enter the path here [default: None]
+- batch_size: keep the same batch Size with training [default: 16]

@@ -239,7 +239,8 @@ def similarity(feature_dict1, feature_dict2, label_dict_r):
     loss_norm = np.sum((norm1-norm2)**2)
     torch1 = feature_dict1['torch']
     torch2 = feature_dict2['torch']
-    loss_torch = (torch1-torch2)**2
+    loss_torch = int(torch1==torch2)
+    # loss_torch = (torch1-torch2)**2
     for i in range(len(label_dict_r)):
         # print feature_dict1[labeldict[i]]
         # get the number of each class

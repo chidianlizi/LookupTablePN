@@ -31,115 +31,6 @@ def sample_test_pc(path, density=40):
             pc.points = o3d.utility.Vector3dVector(xyz)
             o3d.io.write_point_cloud(os.path.join(path, namestr+'.xyz'),pc)
 
-def rewrite_xml():
-    '''
-    rewrite the xml file, writing each welding spot and the corresponding pose 
-    as a separate block
-    '''
-    # path = './data/splitmeyer/models'
-    path = '../data/test/models'
-    # path = './data/splitmeyer/untrained_models'
-    folders = os.listdir(path)
-    for folder in folders:
-        src = os.path.join(path, folder, folder+'.xml')
-        dist = os.path.join(path, folder, folder+'_r.xml')
-
-        xml_frames = parse_frame_dump(src)
-
-        doc = Document()  # create DOM
-        FRAME_DUMP = doc.createElement('FRAME-DUMP') # create root element
-        FRAME_DUMP.setAttribute('VERSION', '1.0')
-        FRAME_DUMP.setAttribute('Baugruppe', folder)
-        doc.appendChild(FRAME_DUMP)
-        for ii in range(len(xml_frames)):
-            torch = xml_frames[ii]['torch']
-            weld_frames = xml_frames[ii]['weld_frames']
-            pose = xml_frames[ii]['pose_frames']
-            for jj in range(len(weld_frames)):
-                pos = weld_frames[jj]['position']
-                SNaht = doc.createElement('SNaht')
-                SNaht.setAttribute('Name',torch[0])
-                SNaht.setAttribute('ZRotLock',torch[1])
-                SNaht.setAttribute('WkzWkl',torch[2])
-                SNaht.setAttribute('WkzName',torch[3])
-                FRAME_DUMP.appendChild(SNaht)
-
-                Kontur = doc.createElement('Kontur')
-                SNaht.appendChild(Kontur)
-
-                Punkt = doc.createElement('Punkt')
-                Punkt.setAttribute('X', str(pos[0]))
-                Punkt.setAttribute('Y', str(pos[1]))
-                Punkt.setAttribute('Z', str(pos[2]))
-                Kontur.appendChild(Punkt)
-
-                Fl_Norm1 = doc.createElement('Fl_Norm')
-                Fl_Norm1.setAttribute('X', str(weld_frames[jj]['norm'][0][0]))
-                Fl_Norm1.setAttribute('Y', str(weld_frames[jj]['norm'][0][1]))
-                Fl_Norm1.setAttribute('Z', str(weld_frames[jj]['norm'][0][2]))
-                Punkt.appendChild(Fl_Norm1)
-
-                Fl_Norm2 = doc.createElement('Fl_Norm')
-                Fl_Norm2.setAttribute('X', str(weld_frames[jj]['norm'][1][0]))
-                Fl_Norm2.setAttribute('Y', str(weld_frames[jj]['norm'][1][1]))
-                Fl_Norm2.setAttribute('Z', str(weld_frames[jj]['norm'][1][2]))
-                Punkt.appendChild(Fl_Norm2)
-
-                Rot = doc.createElement('Rot')
-                Rot.setAttribute('X', str(weld_frames[jj]['rot'][0]))
-                Rot.setAttribute('Y', str(weld_frames[jj]['rot'][1]))
-                Rot.setAttribute('Z', str(weld_frames[jj]['rot'][2]))
-                Punkt.appendChild(Rot)
-                
-                EA = doc.createElement('Ext-Achswerte')
-                EA.setAttribute('EA3', str(weld_frames[jj]['EA']))
-                Punkt.appendChild(EA)
-                
-                
-                Frames = doc.createElement('Frames')
-                SNaht.appendChild(Frames)
-
-                Frame = doc.createElement('Frame')
-                Frames.appendChild(Frame)
-
-                Pos = doc.createElement('Pos')
-                Pos.setAttribute('X', str(pos[0]))
-                Pos.setAttribute('Y', str(pos[1]))
-                Pos.setAttribute('Z', str(pos[2]))
-                Frame.appendChild(Pos)
-
-                XVek = doc.createElement('XVek')
-                XVek.setAttribute('X', str(pose[jj][0][0]))
-                XVek.setAttribute('Y', str(pose[jj][1][0]))
-                XVek.setAttribute('Z', str(pose[jj][2][0]))
-                Frame.appendChild(XVek)
-                YVek = doc.createElement('YVek')
-                YVek.setAttribute('X', str(pose[jj][0][1]))
-                YVek.setAttribute('Y', str(pose[jj][1][1]))
-                YVek.setAttribute('Z', str(pose[jj][2][1]))
-                Frame.appendChild(YVek)
-                ZVek = doc.createElement('ZVek')
-                ZVek.setAttribute('X', str(pose[jj][0][2]))
-                ZVek.setAttribute('Y', str(pose[jj][1][2]))
-                ZVek.setAttribute('Z', str(pose[jj][2][2]))
-                Frame.appendChild(ZVek)
-                
-                Rot = doc.createElement('Rot')
-                Rot.setAttribute('X', str(weld_frames[jj]['rot'][0]))
-                Rot.setAttribute('Y', str(weld_frames[jj]['rot'][1]))
-                Rot.setAttribute('Z', str(weld_frames[jj]['rot'][2]))
-                Frame.appendChild(Rot)
-                
-                EA = doc.createElement('Ext-Achswerte')
-                EA.setAttribute('EA3', str(weld_frames[jj]['EA']))
-                Frame.appendChild(EA)
-
-        f = open(dist,'w')
-        f.write(doc.toprettyxml(indent = '  '))
-        f.close()
-        check = parse_xml_to_array(dist).shape
-        print (check)
-
 
 class WeldScene_test:
     '''
@@ -212,18 +103,19 @@ def slice_test(pc_path, path_xml, path_dist, crop_size, num_points):
         FRAME_DUMP.setAttribute('VERSION', '1.0')
         FRAME_DUMP.setAttribute('Baugruppe', namestr + '_' + str(i))
         doc.appendChild(FRAME_DUMP)
-        if weld_info[0] == 0:
-            torch = 'MRW510_CDD_10GH'
-        elif weld_info[0] == 1:
-            torch = 'TAND_GERAD_DD'
-        else:
-            torch = ''
+        # if weld_info[0] == 0:
+        #     torch = 'MRW510_CDD_10GH'
+        # elif weld_info[0] == 1:
+        #     torch = 'TAND_GERAD_DD'
+        # else:
+        #     torch = ''
             
         SNaht = doc.createElement('SNaht')
         SNaht.setAttribute('Name',frames[i,0])
         SNaht.setAttribute('ZRotLock',frames[i,1])
-        SNaht.setAttribute('WkzWkl',frames[i,2])
-        SNaht.setAttribute('WkzName',torch)
+        SNaht.setAttribute('WkzName',frames[i,2])
+        SNaht.setAttribute('WkzWkl',frames[i,3])
+
         FRAME_DUMP.appendChild(SNaht)
 
         Kontur = doc.createElement('Kontur')
